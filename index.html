@@ -195,59 +195,109 @@ function renderSearchItems(list, appendMode = true) {
 // };
 
 
-const doResetScroll = (direction = "next") => {
-  const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
-  const maxItems = 30;
-  if ($allItems.length <= maxItems) return;
-  const excess = $allItems.length - maxItems;
+// const doResetScroll = (direction = "next") => {
+//   const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
+//   const maxItems = 30;
+//   if ($allItems.length <= maxItems) return;
+//   const excess = $allItems.length - maxItems;
 
-  // Step 1. Capture current scroll position relative to container
-  const container = document.querySelector(".ptvt-listing-right");
+//   // Step 1. Capture current scroll position relative to container
+//   const container = document.querySelector(".ptvt-listing-right");
+//   const scrollY = window.scrollY;
+//   const containerTop = container.getBoundingClientRect().top + scrollY;
+
+//   if (direction === "next") {
+//     const $lastItemPrevPage = $(
+//       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
+//     ).last();
+
+//     if (!$lastItemPrevPage.length) return;
+
+//     // Get absolute top before removal
+//     const targetTopBefore = $lastItemPrevPage.offset().top;
+
+//     // Step 2. Remove old items
+//     $allItems.slice(0, excess).remove();
+
+//     // Step 3. Force layout recalculation (Safari safe)
+//     void document.body.offsetHeight;
+
+//     // Step 4. Calculate how much the layout shifted, then restore
+//     const targetTopAfter = $lastItemPrevPage.offset().top;
+//     const shift = targetTopAfter - targetTopBefore;
+
+//     // Jump scroll back by the same delta → seamless jump
+//     window.scrollTo(0, scrollY + shift);
+
+//     console.log(`🧭 Scrolled forward by keeping relative position stable. Removed ${excess}.`);
+//   } else if (direction === "prev") {
+//     const $firstItemNextPage = $(
+//       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
+//     ).first();
+
+//     if (!$firstItemNextPage.length) return;
+
+//     const targetTopBefore = $firstItemNextPage.offset().top;
+
+//     $allItems.slice(-excess).remove();
+
+//     void document.body.offsetHeight;
+
+//     const targetTopAfter = $firstItemNextPage.offset().top;
+//     const shift = targetTopAfter - targetTopBefore;
+
+//     window.scrollTo(0, scrollY + shift);
+//     console.log(`🧭 Scrolled backward, preserved position. Removed ${excess}.`);
+//   }
+// };
+
+ 
+const doResetScroll = (direction = "next") => {
+  const $items = $(".ptvt-listing-right .ptvt-listing-item");
+  const maxItems = 30;
+  if ($items.length <= maxItems) return;
+  const excess = $items.length - maxItems;
   const scrollY = window.scrollY;
-  const containerTop = container.getBoundingClientRect().top + scrollY;
 
   if (direction === "next") {
-    const $lastItemPrevPage = $(
+    // --------------------------------------------------------
+    // 🔽 SCROLLING DOWN: remove top items and preserve view
+    // --------------------------------------------------------
+    const $anchor = $(
       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
     ).last();
+    if (!$anchor.length) return;
 
-    if (!$lastItemPrevPage.length) return;
-
-    // Get absolute top before removal
-    const targetTopBefore = $lastItemPrevPage.offset().top;
-
-    // Step 2. Remove old items
-    $allItems.slice(0, excess).remove();
-
-    // Step 3. Force layout recalculation (Safari safe)
+    const anchorTopBefore = $anchor.offset().top;
+    $items.slice(0, excess).remove();
     void document.body.offsetHeight;
+    const anchorTopAfter = $anchor.offset().top;
+    const delta = anchorTopAfter - anchorTopBefore;
 
-    // Step 4. Calculate how much the layout shifted, then restore
-    const targetTopAfter = $lastItemPrevPage.offset().top;
-    const shift = targetTopAfter - targetTopBefore;
-
-    // Jump scroll back by the same delta → seamless jump
-    window.scrollTo(0, scrollY + shift);
-
-    console.log(`🧭 Scrolled forward by keeping relative position stable. Removed ${excess}.`);
+    window.scrollTo(0, scrollY + delta);
+    console.log(`✅ NEXT | kept viewport stable, shift=${delta}px`);
   } else if (direction === "prev") {
-    const $firstItemNextPage = $(
-      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
-    ).first();
+    // --------------------------------------------------------
+    // 🔼 SCROLLING UP: after prepending new items,
+    // we remove bottom ones but WANT to "jump below"
+    // --------------------------------------------------------
+    const $anchor = $(
+      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page}"]`
+    ).last();
+    if (!$anchor.length) return;
 
-    if (!$firstItemNextPage.length) return;
+    const totalBefore = document.body.scrollHeight;
 
-    const targetTopBefore = $firstItemNextPage.offset().top;
-
-    $allItems.slice(-excess).remove();
-
+    // remove bottom items
+    $items.slice(-excess).remove();
     void document.body.offsetHeight;
 
-    const targetTopAfter = $firstItemNextPage.offset().top;
-    const shift = targetTopAfter - targetTopBefore;
+    const totalAfter = document.body.scrollHeight;
+    const delta = totalAfter - totalBefore;
 
-    window.scrollTo(0, scrollY + shift);
-    console.log(`🧭 Scrolled backward, preserved position. Removed ${excess}.`);
+    // 🔥 Jump DOWN by absolute diff — reveal newly added content below
+    window.scrollTo(0, scrollY - delta);
+    console.log(`✅ PREV | jumped below by ${-delta}px`);
   }
 };
 
