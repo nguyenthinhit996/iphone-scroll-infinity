@@ -239,15 +239,24 @@ function show_more_item() {
     bottomObserver.observe(last);
     console.log("✅ Observers reattached to:", first, "and", last);
 
-    // 🩹 Safari/iOS Fix: ensure trigger if already visible
+     // 🩹 Safari/iOS Fix: ensure trigger if bottom already visible
     setTimeout(() => {
-      const lastRect = last.getBoundingClientRect();
       const vpHeight = window.innerHeight || document.documentElement.clientHeight;
+      const lastRect = last.getBoundingClientRect();
+      const firstRect = first.getBoundingClientRect();
+
+      // Bottom already visible → manually trigger next load
       if (lastRect.top < vpHeight && lastRect.bottom > 0) {
         console.log("⚡ Manually triggering bottom observer (already visible)");
         handleLoad("next");
       }
-    }, 300);
+
+      // 🧭 Top already visible → manually trigger previous load
+      if (firstRect.top < vpHeight && firstRect.bottom > 0 && $(first).data("page") > 1) {
+        console.log("⚡ Manually triggering top observer (already visible)");
+        handleLoad("prev");
+      }
+    }, 1200);
   };
 
   attachObservers();
