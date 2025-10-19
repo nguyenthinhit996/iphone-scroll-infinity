@@ -54,6 +54,14 @@
 
 .ptvt-listing-right { contain: layout; }
 
+html, body {
+  scroll-behavior: auto !important;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  backface-visibility: hidden;
+}
+
+
 
 </style>
 </head>
@@ -148,41 +156,98 @@ function renderSearchItems(list, appendMode = true) {
 // };
 
 
+// const doResetScroll = (direction = "next") => {
+//   const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
+//   const maxItems = 30;
+//   if ($allItems.length <= maxItems) return;
+//   const excess = $allItems.length - maxItems;
+
+//   if (direction === "next") {
+//     const $lastItem = $(`.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`).last();
+//     const targetTop = $lastItem.offset().top;
+
+//     // Remove first before repaint
+//     $allItems.slice(0, excess).remove();
+
+    
+//     // window.scrollTo(0, targetTop);
+//     requestAnimationFrame(() => {
+//       // 🧠 Force sync layout before next paint — prevents flash
+//         const force = document.body.offsetHeight; // force reflow
+//           // $("html, body").scrollTop($lastItem.offset().top);
+//     });
+
+//     console.log(`Removed ${excess} old items from top, keeping latest 30.`);
+//   } else if (direction === "prev") {
+//     const $firstItem = $(`.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`).first();
+//     const targetTop = $firstItem.offset().top;
+
+//     $allItems.slice(-excess).remove();
+
+//     requestAnimationFrame(() => {
+//       // 🧠 Force sync layout before next paint — prevents flash
+//         const force = document.body.offsetHeight; // force reflow
+ 
+//     });
+
+//     console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
+//   }
+// };
+
+
 const doResetScroll = (direction = "next") => {
   const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
   const maxItems = 30;
   if ($allItems.length <= maxItems) return;
   const excess = $allItems.length - maxItems;
 
-  if (direction === "next") {
-    const $lastItem = $(`.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`).last();
-    const targetTop = $lastItem.offset().top;
+  // Step 1. Capture current scroll position relative to container
+  const container = document.querySelector(".ptvt-listing-right");
+  const scrollY = window.scrollY;
+  const containerTop = container.getBoundingClientRect().top + scrollY;
 
-    // Remove first before repaint
+  if (direction === "next") {
+    const $lastItemPrevPage = $(
+      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
+    ).last();
+
+    if (!$lastItemPrevPage.length) return;
+
+    // Get absolute top before removal
+    const targetTopBefore = $lastItemPrevPage.offset().top;
+
+    // Step 2. Remove old items
     $allItems.slice(0, excess).remove();
 
-    
-    // window.scrollTo(0, targetTop);
-    requestAnimationFrame(() => {
-      // 🧠 Force sync layout before next paint — prevents flash
-        const force = document.body.offsetHeight; // force reflow
-          // $("html, body").scrollTop($lastItem.offset().top);
-    });
+    // Step 3. Force layout recalculation (Safari safe)
+    void document.body.offsetHeight;
 
-    console.log(`Removed ${excess} old items from top, keeping latest 30.`);
+    // Step 4. Calculate how much the layout shifted, then restore
+    const targetTopAfter = $lastItemPrevPage.offset().top;
+    const shift = targetTopAfter - targetTopBefore;
+
+    // Jump scroll back by the same delta → seamless jump
+    window.scrollTo(0, scrollY + shift);
+
+    console.log(`🧭 Scrolled forward by keeping relative position stable. Removed ${excess}.`);
   } else if (direction === "prev") {
-    const $firstItem = $(`.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`).first();
-    const targetTop = $firstItem.offset().top;
+    const $firstItemNextPage = $(
+      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
+    ).first();
+
+    if (!$firstItemNextPage.length) return;
+
+    const targetTopBefore = $firstItemNextPage.offset().top;
 
     $allItems.slice(-excess).remove();
 
-    requestAnimationFrame(() => {
-      // 🧠 Force sync layout before next paint — prevents flash
-        const force = document.body.offsetHeight; // force reflow
- 
-    });
+    void document.body.offsetHeight;
 
-    console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
+    const targetTopAfter = $firstItemNextPage.offset().top;
+    const shift = targetTopAfter - targetTopBefore;
+
+    window.scrollTo(0, scrollY + shift);
+    console.log(`🧭 Scrolled backward, preserved position. Removed ${excess}.`);
   }
 };
 
