@@ -109,14 +109,22 @@ const doResetScroll = (direction = "next") => {
     const $lastItem = $(
       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
     ).last();
-    $("html, body").scrollTop($lastItem.position().top);
+    // $("html, body").scrollTop($lastItem.position().top);
+    $lastItem[0].scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
     $allItems.slice(0, excess).remove();
     console.log(`Removed ${excess} old items from top, keeping latest 30.`);
   } else if (direction === "prev") {
     const $firstItem = $(
       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
     ).first();
-    $("html, body").scrollTop($firstItem.position().top);
+    // $("html, body").scrollTop($firstItem.position().top);
+    $firstItem[0].scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
     if ($allItems.length > maxItems) {
       const excess = $allItems.length - maxItems;
       $allItems.slice(-excess).remove();
