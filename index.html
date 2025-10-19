@@ -68,6 +68,7 @@ let isUsingNewDistricts = false;
 
 // ---------------- Mock API ----------------
 async function mockFetchStudents(page) {
+console.log("Call API");
   return new Promise((resolve) => {
     setTimeout(() => {
       const list = Array.from({ length: item_one_page }).map((_, i) => ({
