@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mock Infinite Scroll + Footer (height = 664px)</title>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f8f8f8;
+    margin: 0;
+  }
+  .ptvt-listing-right {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  .ptvt-listing-item {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  .ptvt-listing-item img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 12px;
+  }
+  .loader {
+    text-align: center;
+    padding: 20px;
+    color: #555;
+  }
+  footer {
+    height: 664px;
+    background: #ddd;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #333;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+    <h1 style="height: 500px; background:aqua" >Header</h1>
+
+<h2 style="text-align:center;padding:16px;">🎓 Mock Infinite Scroll Demo (Footer 664 px)</h2>
+<div class="ptvt-listing-right"></div>
+<div class="loader" id="loader">Loading...</div>
+
+<footer>📄 Footer — Height = 664 px</footer>
+
+<script>
+let PARAM_FILTER_GOBAL = { page: 1 };
+let PARAM_PAGE_GOBAL = 1;
+let MAX_PAGE = 0;
+let isLoading = false;
+const item_one_page = 6;
+const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+let isUsingNewDistricts = false;
+
+// ---------------- Mock API ----------------
+async function mockFetchStudents(page) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const list = Array.from({ length: item_one_page }).map((_, i) => ({
+        id: (page - 1) * item_one_page + i + 1,
+        name: `Student ${(page - 1) * item_one_page + i + 1}`,
+        img: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`,
+        page,
+      }));
+      resolve({ data: { list, total: 6000 } }); // total = 60 → 10 pages
+    }, 1000);
+  });
+}
+
+// ---------------- Render ----------------
+function renderSearchItems(list, appendMode = true) {
+  const container = $(".ptvt-listing-right");
+  const html = list
+    .map(
+      (s) => `
+      <div style="height: 400px" class="ptvt-listing-item" data-page="${s.page}">
+        <img src="${s.img}" alt="${s.name}">
+        <div>${s.name}</div>
+      </div>`
+    )
+    .join("");
+  if (appendMode) container.append(html);
+  else container.prepend(html);
+}
+
+// ---------------- Reset Scroll ----------------
+const doResetScroll = (direction = "next") => {
+  const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
+  const maxItems = 30;
+  if ($allItems.length <= maxItems) return;
+  const excess = $allItems.length - maxItems;
+
+  if (direction === "next") {
+    const $lastItem = $(
+      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
+    ).last();
+    $("html, body").scrollTop($lastItem.position().top);
+    $allItems.slice(0, excess).remove();
+    console.log(`Removed ${excess} old items from top, keeping latest 30.`);
+  } else if (direction === "prev") {
+    const $firstItem = $(
+      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
+    ).first();
+    $("html, body").scrollTop($firstItem.position().top);
+    if ($allItems.length > maxItems) {
+      const excess = $allItems.length - maxItems;
+      $allItems.slice(-excess).remove();
+      console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
+    }
+  }
+};
+
+// ---------------- Main Infinite Scroll ----------------
+function show_more_item() {
+  if ($(window).width() > 768) return;
+
+  if (window._topObserver) window._topObserver.disconnect();
+  if (window._bottomObserver) window._bottomObserver.disconnect();
+  if (window._listMutationObserver) window._listMutationObserver.disconnect();
+
+  const listContainer = document.querySelector(".ptvt-listing-right");
+  if (!listContainer) return;
+
+  const itemSelector = ".ptvt-listing-right .ptvt-listing-item";
+
+  const handleLoad = async (direction) => {
+    if (isLoading) return;
+    isLoading = true;
+
+    const finalize = () => {
+      doResetScroll(direction);
+      setTimeout(() => {
+        console.log("♻️ Reattaching observers after reset scroll...");
+        topObserver.disconnect();
+        bottomObserver.disconnect();
+        attachObservers();
+      }, 100);
+      setTimeout(() => (isLoading = false), isIphone ? 1000 : 300);
+    };
+
+    try {
+      if (direction === "prev") {
+        const $first = $(itemSelector).first();
+        const firstItemPage = parseInt($first.data("page"), 10) || 1;
+        if (firstItemPage <= 1) return finalize();
+        console.log("⬆️ Reached top — loading previous page:", firstItemPage - 1);
+        PARAM_FILTER_GOBAL.page = firstItemPage - 1;
+      } else {
+        const $last = $(itemSelector).last();
+        let lastItemPage = parseInt($last.data("page"), 10) || 1;
+        if (MAX_PAGE && lastItemPage >= MAX_PAGE) return finalize();
+        lastItemPage++;
+        console.log("⬇️ Reached bottom — loading next page:", lastItemPage);
+        PARAM_FILTER_GOBAL.page = lastItemPage;
+      }
+      PARAM_PAGE_GOBAL = PARAM_FILTER_GOBAL.page;
+
+      console.log("Fetching page", PARAM_PAGE_GOBAL);
+      const result = await mockFetchStudents(PARAM_PAGE_GOBAL);
+      MAX_PAGE = Math.ceil(result.data.total / item_one_page);
+      renderSearchItems(result.data.list, direction === "next");
+      console.log("✅ Mock API success, page", PARAM_PAGE_GOBAL);
+    } catch (err) {
+      console.error("API load error:", err);
+    } finally {
+      finalize();
+    }
+  };
+
+  // Intersection Observers
+  const topObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) handleLoad("prev");
+    },
+    {
+      root: null,
+      rootMargin: "70px 0px -98% 0px",
+      threshold: 0,
+    }
+  );
+
+  const bottomObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) handleLoad("next");
+    },
+    {
+      root: null,
+      rootMargin: "700px 0px 664px 0px", // ✅ footer height offset
+      threshold: 0,
+    }
+  );
+
+  window._topObserver = topObserver;
+  window._bottomObserver = bottomObserver;
+
+  const attachObservers = () => {
+    const items = document.querySelectorAll(itemSelector);
+    if (!items.length) return;
+    topObserver.observe(items[0]);
+    bottomObserver.observe(items[items.length - 1]);
+    console.log("✅ Observers attached to:", items[0], "and", items[items.length - 1]);
+  };
+
+  attachObservers();
+}
+
+// ---------------- INIT ----------------
+(async function init() {
+  const result = await mockFetchStudents(PARAM_FILTER_GOBAL.page);
+  renderSearchItems(result.data.list, true);
+  MAX_PAGE = Math.ceil(result.data.total / item_one_page);
+  show_more_item();
+})();
+</script>
+</body>
+</html>
