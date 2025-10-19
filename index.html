@@ -48,6 +48,13 @@
     color: #333;
     font-weight: bold;
   }
+  .ptvt-listing-item {
+  will-change: transform;
+}
+
+.ptvt-listing-right { contain: layout; }
+
+
 </style>
 </head>
 <body>
@@ -103,6 +110,44 @@ function renderSearchItems(list, appendMode = true) {
 }
 
 // ---------------- Reset Scroll ----------------
+// const doResetScroll = (direction = "next") => {
+//   const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
+//   const maxItems = 30;
+//   if ($allItems.length <= maxItems) return;
+//   const excess = $allItems.length - maxItems;
+
+//   if (direction === "next") {
+//     const $lastItem = $(
+//       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
+//     ).last();
+
+//     $allItems.slice(0, excess).remove();
+
+//     requestAnimationFrame(() => {
+//           // window.scrollTo({ top: targetTop, behavior: "instant" });
+//           $("html, body").scrollTop($lastItem.offset().top);
+//     });
+
+    
+//     console.log(`Removed ${excess} old items from top, keeping latest 30.`);
+//   } else if (direction === "prev") {
+//     const $firstItem = $(
+//       `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
+//     ).first();
+
+//     if ($allItems.length > maxItems) {
+//       const excess = $allItems.length - maxItems;
+//       $allItems.slice(-excess).remove();
+//       console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
+//     }
+//     requestAnimationFrame(() => {
+//       $("html, body").scrollTop($firstItem.offset().top);
+//     });
+    
+//   }
+// };
+
+
 const doResetScroll = (direction = "next") => {
   const $allItems = $(".ptvt-listing-right .ptvt-listing-item");
   const maxItems = 30;
@@ -110,26 +155,37 @@ const doResetScroll = (direction = "next") => {
   const excess = $allItems.length - maxItems;
 
   if (direction === "next") {
-    const $lastItem = $(
-      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`
-    ).last();
+    const $lastItem = $(`.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page - 1}"]`).last();
+    const targetTop = $lastItem.offset().top;
 
+    // Remove first before repaint
     $allItems.slice(0, excess).remove();
-    $("html, body").scrollTop($lastItem.offset().top);
+
+    
+    // window.scrollTo(0, targetTop);
+    requestAnimationFrame(() => {
+      // 🧠 Force sync layout before next paint — prevents flash
+        const force = document.body.offsetHeight; // force reflow
+          // $("html, body").scrollTop($lastItem.offset().top);
+    });
+
     console.log(`Removed ${excess} old items from top, keeping latest 30.`);
   } else if (direction === "prev") {
-    const $firstItem = $(
-      `.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`
-    ).first();
+    const $firstItem = $(`.ptvt-listing-right .ptvt-listing-item[data-page="${PARAM_FILTER_GOBAL.page + 1}"]`).first();
+    const targetTop = $firstItem.offset().top;
 
-    if ($allItems.length > maxItems) {
-      const excess = $allItems.length - maxItems;
-      $allItems.slice(-excess).remove();
-      console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
-    }
-    $("html, body").scrollTop($firstItem.offset().top);
+    $allItems.slice(-excess).remove();
+
+    requestAnimationFrame(() => {
+      // 🧠 Force sync layout before next paint — prevents flash
+        const force = document.body.offsetHeight; // force reflow
+ 
+    });
+
+    console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
   }
 };
+
 
 // ---------------- Main Infinite Scroll ----------------
 function show_more_item() {
