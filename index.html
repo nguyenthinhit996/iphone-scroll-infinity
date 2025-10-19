@@ -127,7 +127,7 @@ const doResetScroll = (direction = "next") => {
 
 // ---------------- Main Infinite Scroll ----------------
 function show_more_item() {
-  if ($(window).width() > 768) return;
+ 
 
   if (window._topObserver) window._topObserver.disconnect();
   if (window._bottomObserver) window._bottomObserver.disconnect();
