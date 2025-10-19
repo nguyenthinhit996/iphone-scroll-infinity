@@ -67,6 +67,8 @@ let isLoading = false;
 const item_one_page = 6;
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 let isUsingNewDistricts = false;
+let triggerCount = 0;
+const MAX_TRIGGERS = 5000;
 
 // ---------------- Mock API ----------------
 async function mockFetchStudents(page) {
@@ -113,7 +115,7 @@ const doResetScroll = (direction = "next") => {
     ).last();
 
     $allItems.slice(0, excess).remove();
-    $("html, body").scrollTop($lastItem.position().top);
+    $("html, body").scrollTop($lastItem.offset().top);
     console.log(`Removed ${excess} old items from top, keeping latest 30.`);
   } else if (direction === "prev") {
     const $firstItem = $(
@@ -125,7 +127,7 @@ const doResetScroll = (direction = "next") => {
       $allItems.slice(-excess).remove();
       console.log(`Removed ${excess} old items from bottom, keeping latest 30.`);
     }
-    $("html, body").scrollTop($firstItem.position().top);
+    $("html, body").scrollTop($firstItem.offset().top);
   }
 };
 
@@ -143,6 +145,11 @@ function show_more_item() {
   const itemSelector = ".ptvt-listing-right .ptvt-listing-item";
 
   const handleLoad = async (direction) => {
+    if (triggerCount++ > MAX_TRIGGERS) {
+      console.warn("⚠️ Stopping observer — too many triggers");
+      return;
+    }
+
     if (isLoading) return;
     isLoading = true;
 
@@ -264,12 +271,15 @@ function show_more_item() {
 }
 
 // ---------------- INIT ----------------
-(async function init() {
+async function init() {
   const result = await mockFetchStudents(PARAM_FILTER_GOBAL.page);
   renderSearchItems(result.data.list, true);
   MAX_PAGE = Math.ceil(result.data.total / item_one_page);
   show_more_item();
-})();
+};
+
+document.addEventListener("DOMContentLoaded", init);
+
 </script>
 
 </body>
