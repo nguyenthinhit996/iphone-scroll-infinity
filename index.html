@@ -144,16 +144,17 @@ function show_more_item() {
 
     const finalize = () => {
       doResetScroll(direction);
-      setTimeout(() => {
-        console.log("♻️ Reattaching observers after reset scroll...");
-        topObserver.disconnect();
-        bottomObserver.disconnect();
-        attachObservers();
-      }, 100);
+      attachObservers();
       setTimeout(() => (isLoading = false), isIphone ? 1000 : 300);
     };
 
     try {
+
+      console.log("♻️ Reattaching observers after reset scroll...");
+      topObserver.disconnect();
+      bottomObserver.disconnect();
+
+
       if (direction === "prev") {
         const $first = $(itemSelector).first();
         const firstItemPage = parseInt($first.data("page"), 10) || 1;
@@ -227,5 +228,6 @@ function show_more_item() {
   show_more_item();
 })();
 </script>
+
 </body>
 </html>
