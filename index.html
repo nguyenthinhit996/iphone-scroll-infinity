@@ -209,15 +209,45 @@ function show_more_item() {
   window._topObserver = topObserver;
   window._bottomObserver = bottomObserver;
 
+  // const attachObservers = () => {
+  //   const items = document.querySelectorAll(itemSelector);
+  //   if (!items.length) return;
+  //   topObserver.observe(items[0]);
+  //   bottomObserver.observe(items[items.length - 1]);
+  //   console.log("✅ Observers attached to:", items[0], "and", items[items.length - 1]);
+  // };
+
+
+
   const attachObservers = () => {
     const items = document.querySelectorAll(itemSelector);
     if (!items.length) return;
-    topObserver.observe(items[0]);
-    bottomObserver.observe(items[items.length - 1]);
-    console.log("✅ Observers attached to:", items[0], "and", items[items.length - 1]);
+
+    const first = items[0];
+    const last = items[items.length - 1];
+
+    // Disconnect previous
+    topObserver.disconnect();
+    bottomObserver.disconnect();
+
+    // Attach again
+    topObserver.observe(first);
+    bottomObserver.observe(last);
+    console.log("✅ Observers reattached to:", first, "and", last);
+
+    // 🩹 Safari/iOS Fix: ensure trigger if already visible
+    setTimeout(() => {
+      const lastRect = last.getBoundingClientRect();
+      const vpHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (lastRect.top < vpHeight && lastRect.bottom > 0) {
+        console.log("⚡ Manually triggering bottom observer (already visible)");
+        handleLoad("next");
+      }
+    }, 300);
   };
 
   attachObservers();
+
 }
 
 // ---------------- INIT ----------------
